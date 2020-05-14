@@ -85,7 +85,7 @@ def mTran(m):
         return [[m[j][i] for j in range(len(m))] for i in range(len(m[0]))]
 
 
-def LCM(nums):
+def lcm(nums):
     """Compute the lowest common multiple of a list of positive integers."""
     lcm = nums[0]
     for i in range(1, len(nums)):
@@ -101,14 +101,16 @@ def gcd(a, b):
 
 
 def solution(m):
-    """Compute the steady state of an absorbing matrix m."""
+    """Compute the steady state of an absorbing Markov matrix m."""
     steady = []
     nonSteady = []
 
+    # Base case, saves compute time
     rows = len(m)
     if rows == 1:
         return [1, 1]
 
+    # Store steady states etc.
     for i in range(rows):
         numZeros = m[i].count(0)
         if numZeros == rows:
@@ -123,44 +125,62 @@ def solution(m):
         for j in range(rows):
             m[i][j] = Fraction(m[i][j], rowSum)
 
+    # If there is only steady states, stay in base state
     if not nonSteady:
-        val = [0 for i in range(rows)]
+        val = [0 for i in range(rows + 1)]
         val[0] = 1
-        val.append(1)
+        val[-1] = 1
         return val
 
+    # if there is only one steady state it will end there
     steadyNum = len(steady)
-    nonSteadyNum = len(nonSteady)
     if steadyNum == 1:
-        val = [0 for i in range(rows)]
+        val = [0 for i in range(rows + 1)]
         val[steady[0]] = 1
-        val.append(1)
+        val[-1] = 1
         return val
 
+    nonSteadyNum = len(nonSteady)
+
+    # Calculate components of the transition matrix
     R = []
     for i in range(nonSteadyNum):
         R.append([])
         for j in range(steadyNum):
             R[i].append(m[nonSteady[i]][steady[j]])
 
+    # Calculate components of the transition matrix
     Q = []
     for i in range(nonSteadyNum):
         Q.append([])
         for j in range(nonSteadyNum):
             Q[i].append(m[nonSteady[i]][nonSteady[j]])
 
+    # Calculate the fundamental matrix
     F = mInv(mSub(eye(nonSteadyNum), Q))
-    FR = mMult(F, R)
 
-    lcm = LCM([frac.denominator for frac in FR[0]])
-    nums = [int(frac * lcm) for frac in FR[0]]
-    nums.append(lcm)
+    # Calculate the probability vector
+    probVec = mMult(F, R)[0]
+
+    # Modify values for output
+    lowestMult = lcm([frac.denominator for frac in probVec])
+    nums = [int(frac * lowestMult) for frac in probVec]
+    nums.append(lowestMult)
 
     return nums
 
 
-m1 = [[1, 2, 3, 0],
-      [4, 5, 6, 0],
-      [7, 8, 9, 0]]
-
-print(solution(m1))
+assert (
+    solution([
+        [0, 7, 0, 17, 0, 1, 0, 5, 0, 2],
+        [0, 0, 29, 0, 28, 0, 3, 0, 16, 0],
+        [0, 3, 0, 0, 0, 1, 0, 0, 0, 0],
+        [48, 0, 3, 0, 0, 0, 17, 0, 0, 0],
+        [0, 6, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ]) == [4, 5, 5, 4, 2, 20]
+)
