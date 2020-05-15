@@ -3,7 +3,7 @@ from fractions import Fraction
 
 def solution(dimensions, your_position, guard_position, distance):
     maxBoxes = [int((distance / dimensions[i] / 2) + 1) for i in range(2)]
-    gPosMirror = []
+    gPosMirror = 0
 
     gFromR = dimensions[0] - guard_position[0]
     gFromL = guard_position[0]
@@ -39,13 +39,22 @@ def solution(dimensions, your_position, guard_position, distance):
             else:
                 yG = y * dimensions[1] + gFromB
 
-            gDist = (xG - yFromL) ** 2 + (yG - yFromB) ** 2
-            if gDist < distance ** 2:
-                gPosMirror.append((xG, yG))
+            if (xG - yFromL) ** 2 + (yG - yFromB) ** 2 < distance ** 2:
+                gPosMirror += 1
 
-    return len(gPosMirror)
+    return gPosMirror
 
 
-# print(solution([3, 3], [1, 1], [2, 2], 8))
-# print(solution([3, 2], [1, 1], [2, 1], 4))
-# print(solution([300, 275], [150, 150], [185, 100], 500))
+"""Working!"""
+x = solution([23, 10], [6, 4], [3, 2], 23)
+assert x == 8, print(x)
+x = solution([3, 2], [1, 1], [2, 1], 4)
+assert x == 7, print(x)
+x = solution([300, 275], [150, 150], [185, 100], 500)
+assert x == 9, print(x)
+
+"""Not Working :("""
+# x = solution([2, 5], [1, 2], [1, 4], 11)
+# assert x == 27, print(x)
+# x = solution([10, 10], [4, 4], [3, 3], 5000)
+# assert x == 739323, print(x)
