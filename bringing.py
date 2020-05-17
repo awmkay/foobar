@@ -4,10 +4,7 @@ def gcd(a, b):
 
 def toFraction(a, b):
     denom = gcd(a, b)
-    try:
-        return (int(a / denom), int(b / denom))
-    except ZeroDivisionError:
-        return (float('inf'))
+    return float("inf") if not b else (a // denom, b // denom)
 
 
 def solution(dimensions, your_position, guard_position, distance):
