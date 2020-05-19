@@ -1,107 +1,96 @@
 def gcd(a, b):
+    """Compute the greatest common denominator of integers a and b."""
     return a if b == 0 else gcd(b, a % b)
 
 
-def toFraction(a, b):
-    denom = gcd(a, b)
-    return float("inf") if not b else (a // denom, b // denom)
+def toGradient(pt1, pt2):
+    """Convert pt1 and pt2 to simplified gradient (numerator, denominator)."""
+    xDiff = pt1[0] - pt2[0]
+    yDiff = pt1[1] - pt2[1]
+    denom = gcd(yDiff, xDiff)
+
+    if not xDiff:
+        return float("inf")
+    elif not yDiff:
+        return 0
+    else:
+        return (yDiff // denom, xDiff // denom)
 
 
-def solution(dimensions, your_position, guard_position, distance):
-    # Shorter names for your position
-    yFromL, yFromR = your_position[0], dimensions[0] - your_position[0]
-    yFromB, yFromT = your_position[1], dimensions[1] - your_position[1]
+def solution(dim, mPos, gPos, dist):
+    # Used for distance calculations
+    distSqr = dist ** 2
 
-    # Shorter names for guard position
-    gFromL, gFromR = guard_position[0], dimensions[0] - guard_position[0]
-    gFromB, gFromT = guard_position[1], dimensions[1] - guard_position[1]
-
-    # Used for distance comparison
-    distSqr = distance ** 2
-
-    # Check if shooting the guard is possible
-    if (gFromB - yFromB) ** 2 + (gFromL - yFromL) ** 2 > distSqr:
+    # Check you can shoot the guard
+    if (gPos[0] - mPos[0]) ** 2 + (gPos[1] - mPos[1]) ** 2 > distSqr:
         return 0
 
-    # Caclulate gradient from the base guard to you
-    ygGrad = toFraction(gFromB - yFromB, gFromL - yFromL)
+    # Max number of boxes to be mirrored
+    maxBox = [dist // dim[0] + 2, dist // dim[1] + 2]
 
-    # Stores all possible gradients from base to mirrored
-    gGradSetTR, yGradSetTR = set(), set()
-    gGradSetTL, yGradSetTL = set(), set()
-    gGradSetBR, yGradSetBR = set(), set()
-    gGradSetBL, yGradSetBL = set(), set()
+    # Used for
+    baseGrad = toGradient(mPos, gPos)
 
-    # Find number of necesary boxes
-    maxBoxes = [distance // dimensions[i] + 1 for i in range(2)]
+    xRange = list(range(maxBox[0])) + list(range(-1, -maxBox[0], -1))
+    yRange = list(range(maxBox[1])) + list(range(-1, -maxBox[1], -1))
 
-    # Loop through: 0 -> max, -1 -> min
-    for x in list(range(-1, -maxBoxes[0], -1)) + list(range(maxBoxes[0])):
-        # Decrease runtime by reducing computations
-        xBox, xOdd, xPos = x * dimensions[0], x & 1, x >= 0
+    # Store gradients from base me to mirrored me and guards
+    gGradSet = set()
+    mGradSet = set()
 
-        # Caclulate mirrored x positions
-        xY = xBox + yFromR if xOdd else xBox + yFromL
-        xG = xBox + gFromR if xOdd else xBox + gFromL
+    # Stores number of positive x shots that hit a guard first
+    posShots = 0
 
-        # Calculate mirrored x and base differences
-        xgDiff, xyDiff = xG - yFromL, xY - yFromL
+    for x in xRange:
+        # Reset sets for negative x values in case of parallel gradients
+        if x == -1:
+            posShots += len(gGradSet)
+            mGradSet.clear()
+            gGradSet.clear()
 
-        for y in range(-maxBoxes[1], maxBoxes[1] + 1):
-            # Decrease runtime by reducing computations
-            yBox, yOdd, yPos = y * dimensions[1], y & 1, y >= 0
+        # Used for later calculations
+        xOdd = x & 1
+        xBox = x * dim[0]
 
-            # Calculate mirrored y positions
-            yG = yBox + gFromT if yOdd else yBox + gFromB
-            yY = yBox + yFromT if yOdd else yBox + yFromB
+        # Calculate mirrored x positions of me and guard
+        xG = xBox + dim[0] - gPos[0] if xOdd else xBox + gPos[0]
+        xM = xBox + dim[0] - mPos[0] if xOdd else xBox + mPos[0]
 
-            # Calculate mirrored y and base differences
-            ygDiff, yyDiff = yG - yFromB, yY - yFromB
+        # Used for distance checking
+        xGSqr = (xG - mPos[0]) ** 2
+        for y in yRange:
+            # Used for later calculations
+            yOdd = y & 1
+            yBox = y * dim[1]
 
-            # Caclulate gradients from base you to mirrored you and guard
-            gGrad = toFraction(ygDiff, xgDiff)
-            yGrad = toFraction(yyDiff, xyDiff)
+            # Calculate mirrored y positions of me and guard
+            yG = yBox + dim[1] - gPos[1] if yOdd else yBox + gPos[1]
+            yM = yBox + dim[1] - mPos[1] if yOdd else yBox + mPos[1]
 
-            # Skip iteration if distance to mirrored guard it too great
-            if xgDiff ** 2 + ygDiff ** 2 > distSqr or gGrad == ygGrad:
+            # Used for distance checking
+            yGSqr = (yG - mPos[1]) ** 2
+
+            # Check for xG within ray distance
+            if xGSqr + yGSqr > distSqr:
                 continue
 
-            # Top Right
-            if xPos and yPos:
-                yGradSetTR.add(yGrad)
-                if gGrad in yGradSetTR:
-                    continue
-                elif gGrad not in gGradSetTR:
-                    gGradSetTR.add(gGrad)
+            # Calculate gradients from base me to mirrored me and guard
+            mGrad = toGradient((xM, yM), mPos)
+            gGrad = toGradient((xG, yG), mPos)
 
-            # Bottom Right
-            elif xPos and not yPos:
-                yGradSetBR.add(yGrad)
-                if gGrad in yGradSetBR:
-                    continue
-                elif gGrad not in gGradSetBR:
-                    gGradSetBR.add(gGrad)
+            # Skip if mirrored guard is in line with base me and guard
+            if gGrad == baseGrad:
+                continue
 
-            # Top Left
-            elif not xPos and yPos:
-                yGradSetTL.add(yGrad)
-                if gGrad in yGradSetTL:
-                    continue
-                elif gGrad not in gGradSetTL:
-                    gGradSetTL.add(gGrad)
+            # Add new mGradient for parallel checking
+            if mGrad not in mGradSet:
+                mGradSet.add(mGrad)
 
-            # Bottom Left
-            else:
-                yGradSetBL.add(yGrad)
-                if gGrad in yGradSetBL:
-                    continue
-                elif gGrad not in gGradSetBL:
-                    gGradSetBL.add(gGrad)
+            # Add gGradient if if does not have another guard or me in it's way
+            if gGrad not in gGradSet and gGrad not in mGradSet:
+                gGradSet.add(gGrad)
 
-    # Add one for the straight shot
-    shotNum = len(gGradSetTR) + len(gGradSetBR)
-    shotNum += len(gGradSetTL) + len(gGradSetBL)
-    return shotNum + 1
+    return posShots + len(gGradSet) + 1
 
 
 """Working!"""
@@ -116,7 +105,6 @@ assert x == 8, print(x)
 x = solution([3, 2], [1, 1], [2, 1], 1)
 assert x == 1, print(x)
 
-
-"""Not Working :("""
+"""Not Working: ("""
 x = solution([10, 10], [4, 4], [3, 3], 5000)
 assert x == 739323, print(x)
